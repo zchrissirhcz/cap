@@ -10,45 +10,63 @@
 }
 @end
 
-void captureScreen() {
-    CGImageRef screenImage = CGDisplayCreateImage(kCGDirectMainDisplay);
+@interface CaptureWindow : NSWindow
+@property (assign) NSPoint startPoint;
+@property (assign) NSPoint endPoint;
+@end
+
+@implementation CaptureWindow
+
+- (void)mouseDown:(NSEvent *)event {
+    self.startPoint = [event locationInWindow];
+}
+
+- (void)mouseUp:(NSEvent *)event {
+    self.endPoint = [event locationInWindow];
+    [self captureScreen];
+    [self close];
+}
+
+- (void)captureScreen {
+    CGFloat x = MIN(self.startPoint.x, self.endPoint.x);
+    CGFloat y = MIN(self.startPoint.y, self.endPoint.y);
+    CGFloat width = fabs(self.startPoint.x - self.endPoint.x);
+    CGFloat height = fabs(self.startPoint.y - self.endPoint.y);
+    CGRect captureRect = CGRectMake(x, y, width, height);
+
+    CGImageRef screenImage = CGDisplayCreateImageForRect(kCGDirectMainDisplay, captureRect);
     if (screenImage) {
         NSBitmapImageRep *bitmapRep = [[NSBitmapImageRep alloc] initWithCGImage:screenImage];
         NSData *pngData = [bitmapRep representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
         NSString *filePath = [[NSFileManager defaultManager] currentDirectoryPath];
-        filePath = [filePath stringByAppendingPathComponent:@"screenshot.png"];
+        filePath = [filePath stringByAppendingPathComponent:@"capture.png"];
         [pngData writeToFile:filePath atomically:YES];
         CFRelease(screenImage);
     }
 }
+
+@end
 
 void showTransparentWindow() {
     @autoreleasepool {
         [NSApplication sharedApplication];
 
         NSScreen *mainScreen = [NSScreen mainScreen];
-        NSRect frame = [mainScreen frame]; // Get the full screen frame
+        NSRect frame = [mainScreen frame];
 
-        NSWindow *window = [[NSWindow alloc] initWithContentRect:frame
-                                                       styleMask:(NSWindowStyleMaskBorderless)
-                                                         backing:NSBackingStoreBuffered
-                                                           defer:NO];
-        [window setBackgroundColor:[NSColor whiteColor]]; // Set the background color to white
-        [window setAlphaValue:0.7]; // Set window transparency to 70%
-        [window setOpaque:NO]; // Ensure the window is not opaque
-        [window setLevel:NSStatusWindowLevel]; // Set window level to be above normal windows
+        CaptureWindow *window = [[CaptureWindow alloc] initWithContentRect:frame
+                                                                 styleMask:(NSWindowStyleMaskBorderless)
+                                                                   backing:NSBackingStoreBuffered
+                                                                     defer:NO];
+        [window setBackgroundColor:[NSColor colorWithWhite:1.0 alpha:0.7]];
+        [window setOpaque:NO];
+        [window setLevel:NSStatusWindowLevel];
 
         AppDelegate *delegate = [[AppDelegate alloc] init];
         [NSApp setDelegate:delegate];
         [window setDelegate:delegate];
 
         [window makeKeyAndOrderFront:nil];
-
-        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            captureScreen();
-            [window close];
-        });
-
         [NSApp run];
     }
 }
