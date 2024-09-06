@@ -4,7 +4,7 @@
 extern "C" {
 #endif
 
-void showTransparentWindow();
+unsigned char *captureFullScreen(int *width, int *height, int *channels);
 
 #ifdef __cplusplus
 }
