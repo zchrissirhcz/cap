@@ -1,7 +1,7 @@
 #include <ApplicationServices/ApplicationServices.h>  
-#include <iostream>  
+#include <iostream>
 
-int main() {  
+int capture_fullscreen() {
     // Get the main display ID  
     CGDirectDisplayID displayId = CGMainDisplayID();  
 
@@ -51,4 +51,14 @@ int main() {
     CFRelease(url);  
 
     return 0;  
-}  
+}
+
+
+
+int main() {
+    // Call the Objective-C++ function from C++
+    //showObjectiveCWindow();
+    capture_fullscreen();
+
+    return 0;
+}
