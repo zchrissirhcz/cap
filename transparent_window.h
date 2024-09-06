@@ -4,8 +4,7 @@
 extern "C" {
 #endif
 
-void showObjectiveCWindow();
-void closeObjectiveCWindow();
+void showTransparentWindow();
 
 #ifdef __cplusplus
 }
