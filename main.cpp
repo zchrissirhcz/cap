@@ -1,4 +1,4 @@
-#include "transparent_window.h"
+#include "cap.h"
 
 int main()
 {

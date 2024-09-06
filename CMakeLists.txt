@@ -6,8 +6,8 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 add_executable(cap
   main.cpp
-  transparent_window.h
-  transparent_window.mm
+  cap.h
+  cap.mm
 )
 
 find_library(ApplicationServices_LIBRARY ApplicationServices REQUIRED)

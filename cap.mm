@@ -1,5 +1,5 @@
 #include <Cocoa/Cocoa.h>
-#include "transparent_window.h"
+#include "cap.h"
 
 @interface AppDelegate : NSObject <NSApplicationDelegate, NSWindowDelegate>
 @end
@@ -26,17 +26,17 @@ void showTransparentWindow() {
     @autoreleasepool {
         [NSApplication sharedApplication];
 
-        NSRect frame = NSMakeRect(100, 100, 400, 300);
+        NSScreen *mainScreen = [NSScreen mainScreen];
+        NSRect frame = [mainScreen frame]; // Get the full screen frame
+
         NSWindow *window = [[NSWindow alloc] initWithContentRect:frame
-                                                       styleMask:(NSWindowStyleMaskTitled |
-                                                                  NSWindowStyleMaskClosable |
-                                                                  NSWindowStyleMaskResizable)
+                                                       styleMask:(NSWindowStyleMaskBorderless)
                                                          backing:NSBackingStoreBuffered
                                                            defer:NO];
         [window setBackgroundColor:[NSColor whiteColor]]; // Set the background color to white
         [window setAlphaValue:0.7]; // Set window transparency to 70%
         [window setOpaque:NO]; // Ensure the window is not opaque
-        [window setTitle:@"Semi-Transparent White Window"];
+        [window setLevel:NSStatusWindowLevel]; // Set window level to be above normal windows
 
         AppDelegate *delegate = [[AppDelegate alloc] init];
         [NSApp setDelegate:delegate];
