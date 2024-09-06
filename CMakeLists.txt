@@ -6,8 +6,15 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 add_executable(cap
   main.cpp
+  transparent_window.h
+  transparent_window.mm
 )
 
 find_library(ApplicationServices_LIBRARY ApplicationServices REQUIRED)
 find_library(ImageIO_LIBRARY ImageIO REQUIRED)
-target_link_libraries(cap PRIVATE ${ApplicationServices_LIBRARY} ${ImageIO_LIBRARY})
+find_library(COCOA_LIBRARY Cocoa REQUIRED)
+target_link_libraries(cap PRIVATE
+  ${ApplicationServices_LIBRARY}
+  ${ImageIO_LIBRARY}
+  ${COCOA_LIBRARY}
+)

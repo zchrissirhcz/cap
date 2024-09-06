@@ -1,6 +1,8 @@
 #include <ApplicationServices/ApplicationServices.h>  
 #include <iostream>
 
+#include "transparent_window.h"
+
 int capture_fullscreen() {
     // Get the main display ID  
     CGDirectDisplayID displayId = CGMainDisplayID();  
@@ -53,12 +55,9 @@ int capture_fullscreen() {
     return 0;  
 }
 
-
-
-int main() {
-    // Call the Objective-C++ function from C++
-    //showObjectiveCWindow();
-    capture_fullscreen();
-
+int main()
+{
+    showObjectiveCWindow();
+    // capture_fullscreen();
     return 0;
 }
