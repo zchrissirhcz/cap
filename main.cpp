@@ -50,7 +50,7 @@ void error_callback(int error, const char* description) {
 }
 
 int main() {
-    Config config(true, true);
+    Config config(false, false);
 
     cv::Mat src = get_fullscreen();
     cv::Mat image;
@@ -64,13 +64,17 @@ int main() {
     int width = image.cols;
     int height = image.rows;
 
+    // 获取主显示器
+    GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
+
     // 配置窗口装饰
     glfwWindowHint(GLFW_DECORATED, config.showTitleBar && config.showBorders ? GLFW_TRUE : GLFW_FALSE);
 
     // Set the error callback
     glfwSetErrorCallback(error_callback);
-
-    GLFWwindow* window = glfwCreateWindow(width, height, "Screen Capture", NULL, NULL);
+    printf("primary monitor: width=%d, height=%d\n", mode->width, mode->height);
+    GLFWwindow* window = glfwCreateWindow(mode->width, mode->height, "Screen Capture", NULL, NULL);
     if (!window) {
         std::cerr << "Failed to create GLFW window!" << std::endl;
         glfwTerminate();
