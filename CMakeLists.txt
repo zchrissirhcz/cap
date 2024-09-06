@@ -11,9 +11,17 @@ add_executable(cap
 )
 
 find_library(ApplicationServices_LIBRARY ApplicationServices REQUIRED)
-#find_library(ImageIO_LIBRARY ImageIO REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(glfw3 REQUIRED)
+find_package(OpenGL REQUIRED)
+
+if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+  add_compile_definitions(GL_SILENCE_DEPRECATION)
+endif()
+
 target_link_libraries(cap PRIVATE
   ${OpenCV_LIBS}
   ${ApplicationServices_LIBRARY}
+  glfw
+  OpenGL::GL
 )
