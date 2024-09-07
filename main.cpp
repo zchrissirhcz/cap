@@ -49,7 +49,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 	    cv::Mat roi = image(rect);
 	    cv::Mat res;
 	    cv::cvtColor(roi, res, cv::COLOR_RGBA2BGR);
-	    cv::imwrite("cap.png", roi);
+	    cv::imwrite("cap.png", res);
         }
     }
 }
