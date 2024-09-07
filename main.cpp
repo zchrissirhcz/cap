@@ -1,6 +1,7 @@
 #include "cap.h"
 #include <iostream>
 #include <opencv2/opencv.hpp>
+#include "imgproc.hpp"
 
 #include <GLFW/glfw3.h>
 
@@ -83,6 +84,18 @@ int main() {
 
     // Make the window's context current
     glfwMakeContextCurrent(window);
+
+    cv::Mat cursor_image = create_cursor_image();
+
+    // 创建 GLFW 光标
+    GLFWimage glfwCursorImage;
+    glfwCursorImage.width = cursor_image.cols;
+    glfwCursorImage.height = cursor_image.rows;
+    glfwCursorImage.pixels = cursor_image.data;
+    GLFWcursor* customCursor = glfwCreateCursor(&glfwCursorImage, 0, 0);
+
+    // 设置窗口光标
+    glfwSetCursor(window, customCursor);
 
     // Set up the projection matrix to flip the Y-axis
     glMatrixMode(GL_PROJECTION);

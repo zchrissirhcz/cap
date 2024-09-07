@@ -8,6 +8,8 @@ add_executable(cap
   main.cpp
   cap.h
   cap.cpp
+  imgproc.hpp
+  imgproc.cpp
 )
 
 find_library(ApplicationServices_LIBRARY ApplicationServices REQUIRED)
