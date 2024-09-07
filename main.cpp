@@ -5,6 +5,7 @@
 #include <GLFW/glfw3.h>
 
 bool isSelecting = false;
+bool selected = false;
 double startX, startY, currentX, currentY;
 cv::Mat image;
 
@@ -34,6 +35,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
             glfwGetCursorPos(window, &startX, &startY); // 使用最新的鼠标位置作为起点
         } else if (action == GLFW_RELEASE) {
             isSelecting = false;
+	    selected = true;
 
 	    int framebuffer_width, framebuffer_height;
 	    glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
@@ -243,6 +245,8 @@ int main()
 
     // 主循环
     while (!glfwWindowShouldClose(window)) {
+	if (selected)
+	    break;
         glClear(GL_COLOR_BUFFER_BIT);
 
         // draw_textured_quad(texture, image_width, image_height);
