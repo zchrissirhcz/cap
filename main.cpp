@@ -7,28 +7,6 @@
 bool isSelecting = false;
 double startX, startY, currentX, currentY;
 
-// get RGBA image
-cv::Mat get_fullscreen()
-{
-    cv::Mat res;
-
-    int width, height, channels;
-    unsigned char* buffer = captureFullScreen(&width, &height, &channels);
-    if (buffer) {
-        std::cout << "Captured screen: " << width << "x" << height << " with " << channels << " channels." << std::endl;
-        cv::Size size;
-        size.height = height;
-        size.width = width;
-        cv::Mat image(size, CV_8UC(channels), buffer);
-        res = image.clone();
-        free(buffer);
-    } else {
-        std::cerr << "Failed to capture screen" << std::endl;
-    }
-
-    return res;
-}
-
 // Callback function for GLFW errors
 void error_callback(int error, const char* description) {
     std::cerr << "Error: " << description << std::endl;
@@ -88,11 +66,11 @@ GLFWwindow* get_glfw_fullscreen_window()
     return window;
 }
 
-GLFWwindow* get_simple_window()
+GLFWwindow* get_simple_window(int image_width, int image_height)
 {
-    int window_width = 800;
-    int window_height = 600;
-    GLFWwindow* window = glfwCreateWindow(window_width, window_height, "Hello GLFW", nullptr, nullptr);
+//     int window_width = 800;
+//     int window_height = 600;
+    GLFWwindow* window = glfwCreateWindow(image_width, image_height, "Hello GLFW", nullptr, nullptr);
     if (!window) {
         std::cerr << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -101,7 +79,7 @@ GLFWwindow* get_simple_window()
     return window;
 }
 
-void draw_textured_quad(GLuint texture, int image_width, int image_height)
+void draw_textured_quad(GLuint texture, int target_image_width, int target_image_height)
 {
     // 绑定纹理
     glBindTexture(GL_TEXTURE_2D, texture);
@@ -111,9 +89,9 @@ void draw_textured_quad(GLuint texture, int image_width, int image_height)
     glColor3f(1.0f, 1.0f, 1.0f); // 设置白色以使用纹理的本色
     glBegin(GL_QUADS);
     glTexCoord2f(0.0f, 0.0f); glVertex2f(0.0f, 0.0f);
-    glTexCoord2f(1.0f, 0.0f); glVertex2f(static_cast<float>(image_width), 0.0f);
-    glTexCoord2f(1.0f, 1.0f); glVertex2f(static_cast<float>(image_width), static_cast<float>(image_height));
-    glTexCoord2f(0.0f, 1.0f); glVertex2f(0.0f, static_cast<float>(image_height));
+    glTexCoord2f(1.0f, 0.0f); glVertex2f(static_cast<float>(target_image_width), 0.0f);
+    glTexCoord2f(1.0f, 1.0f); glVertex2f(static_cast<float>(target_image_width), static_cast<float>(target_image_height));
+    glTexCoord2f(0.0f, 1.0f); glVertex2f(0.0f, static_cast<float>(target_image_height));
     glEnd();
 
     glDisable(GL_TEXTURE_2D);
@@ -148,7 +126,12 @@ int main()
     glfwSetErrorCallback(error_callback);
 
     GLFWwindow* window = get_glfw_fullscreen_window();
-    //GLFWwindow* window = get_simple_window();
+//     cv::Mat image = cv::imread("/Users/zz/data/peppers.png");
+//     cv::cvtColor(image, image, cv::COLOR_BGR2RGBA);
+
+    cv::Mat image = get_fullscreen();
+    printf("image size: width=%d, height=%d\n", image.cols, image.rows);
+    //GLFWwindow* window = get_simple_window(image.cols, image.rows);
 
     // Make the window's context current
     glfwMakeContextCurrent(window);
@@ -182,7 +165,7 @@ int main()
     glfwSetCursor(window, customCursor);
 
     // 获取图像
-    cv::Mat image = get_fullscreen();
+
 
     //printf("image size: width=%d, height=%d\n", image_width, image_height);
 
@@ -213,7 +196,8 @@ int main()
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT);
 
-        draw_textured_quad(texture, image_width, image_height);
+        // draw_textured_quad(texture, image_width, image_height);
+        draw_textured_quad(texture, window_width, window_height);
 
         // 绘制矩形区域
         if (isSelecting) {

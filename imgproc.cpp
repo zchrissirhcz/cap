@@ -1,5 +1,6 @@
 #include "imgproc.hpp"
 #include <opencv2/opencv.hpp>
+#include "cap.h"
 
 // 创建一个高分辨率图像进行绘制
 cv::Mat create_high_res_cursor_image(int scale) {
@@ -39,4 +40,25 @@ cv::Mat create_cursor_image() {
     cv::line(cursorImage, cv::Point(0, centerY), cv::Point(39, centerY), cv::Scalar(30, 30, 30, 255), 1, cv::LINE_AA);
 
     return cursorImage;
+}
+
+cv::Mat get_fullscreen()
+{
+    cv::Mat res;
+
+    int width, height, channels;
+    unsigned char* buffer = captureFullScreen(&width, &height, &channels);
+    if (buffer) {
+        std::cout << "Captured screen: " << width << "x" << height << " with " << channels << " channels." << std::endl;
+        cv::Size size;
+        size.height = height;
+        size.width = width;
+        cv::Mat image(size, CV_8UC(channels), buffer);
+        res = image.clone();
+        free(buffer);
+    } else {
+        std::cerr << "Failed to capture screen" << std::endl;
+    }
+
+    return res;
 }
