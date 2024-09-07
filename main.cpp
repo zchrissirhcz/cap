@@ -74,7 +74,7 @@ int main() {
     // Set the error callback
     glfwSetErrorCallback(error_callback);
     printf("primary monitor: width=%d, height=%d\n", mode->width, mode->height);
-    GLFWwindow* window = glfwCreateWindow(mode->width, mode->height, "Screen Capture", NULL, NULL);
+    GLFWwindow* window = glfwCreateWindow(mode->width, mode->height, "Screen Capture", primaryMonitor, NULL);
     if (!window) {
         std::cerr << "Failed to create GLFW window!" << std::endl;
         glfwTerminate();
