@@ -2,26 +2,10 @@
 #include <iostream>
 #include <opencv2/opencv.hpp>
 #include "imgproc.hpp"
-
 #include <GLFW/glfw3.h>
 
-void save_image(cv::Mat& image)
-{
-    cv::Mat res;
-    cv::cvtColor(image, res, cv::COLOR_RGBA2BGRA);
-    //cv::imwrite("screenshot.png", image);
-}
-
-struct Config
-{
-    Config(bool a_showTitleBar, bool a_showBorders):
-        showTitleBar(a_showTitleBar),
-        showBorders(a_showBorders)
-    {}
-
-    bool showTitleBar = false;
-    bool showBorders = false;
-};
+bool isSelecting = false;
+double startX, startY, currentX, currentY;
 
 // get RGBA image
 cv::Mat get_fullscreen()
@@ -50,40 +34,140 @@ void error_callback(int error, const char* description) {
     std::cerr << "Error: " << description << std::endl;
 }
 
-int main() {
-    Config config(false, false);
-
-    cv::Mat src = get_fullscreen();
-    cv::Mat image;
-    cv::flip(src, image, 0); // vertical flip
-
-    if (!glfwInit()) {
-        std::cerr << "Failed to initialize GLFW" << std::endl;
-        return -1;
+// 鼠标按下回调函数
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT) {
+        if (action == GLFW_PRESS) {
+            isSelecting = true;
+            glfwGetCursorPos(window, &startX, &startY); // 使用最新的鼠标位置作为起点
+        } else if (action == GLFW_RELEASE) {
+            isSelecting = false;
+        }
     }
+}
 
-    int width = image.cols;
-    int height = image.rows;
+// 鼠标移动回调函数
+void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
+    currentX = xpos;
+    currentY = ypos;
+}
 
+// 处理 framebuffer 大小变化（物理层面的分辨率）
+void framebuffer_size_callback(GLFWwindow* window, int framebuffer_width, int framebuffer_height)
+{
+    // 调整视角与窗口尺寸一致
+    glViewport(0, 0, framebuffer_width, framebuffer_height);
+}
+
+// 处理窗口大小变化（逻辑层面的分辨率）
+// 注意，macOS 使用 RETINA 屏，物理分辨率的宽度、高度，分别是逻辑分辨率的宽度、高度的2倍
+// 因此设置投影矩阵 和 viewport， 要分开设置
+void window_size_callback(GLFWwindow* window, int width, int height)
+{
+    // std::cout << "Window size changed: " << width << "x" << height << std::endl;
+    glMatrixMode(GL_PROJECTION);
+    glLoadIdentity();
+    glOrtho(0, width, height, 0, -1, 1);
+    glMatrixMode(GL_MODELVIEW);
+    glLoadIdentity();
+}
+
+GLFWwindow* get_glfw_fullscreen_window()
+{
     // 获取主显示器
     GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
 
-    // 配置窗口装饰
-    glfwWindowHint(GLFW_DECORATED, config.showTitleBar && config.showBorders ? GLFW_TRUE : GLFW_FALSE);
-
-    // Set the error callback
-    glfwSetErrorCallback(error_callback);
     printf("primary monitor: width=%d, height=%d\n", mode->width, mode->height);
     GLFWwindow* window = glfwCreateWindow(mode->width, mode->height, "Screen Capture", primaryMonitor, NULL);
     if (!window) {
         std::cerr << "Failed to create GLFW window!" << std::endl;
         glfwTerminate();
+        return nullptr;
+    }
+    return window;
+}
+
+GLFWwindow* get_simple_window()
+{
+    int window_width = 800;
+    int window_height = 600;
+    GLFWwindow* window = glfwCreateWindow(window_width, window_height, "Hello GLFW", nullptr, nullptr);
+    if (!window) {
+        std::cerr << "Failed to create GLFW window" << std::endl;
+        glfwTerminate();
+        return nullptr;
+    }
+    return window;
+}
+
+void draw_textured_quad(GLuint texture, int image_width, int image_height)
+{
+    // 绑定纹理
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glEnable(GL_TEXTURE_2D);
+
+    // 绘制图像
+    glColor3f(1.0f, 1.0f, 1.0f); // 设置白色以使用纹理的本色
+    glBegin(GL_QUADS);
+    glTexCoord2f(0.0f, 0.0f); glVertex2f(0.0f, 0.0f);
+    glTexCoord2f(1.0f, 0.0f); glVertex2f(static_cast<float>(image_width), 0.0f);
+    glTexCoord2f(1.0f, 1.0f); glVertex2f(static_cast<float>(image_width), static_cast<float>(image_height));
+    glTexCoord2f(0.0f, 1.0f); glVertex2f(0.0f, static_cast<float>(image_height));
+    glEnd();
+
+    glDisable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+// 绘制矩形
+void drawRectangle(double x1, double y1, double x2, double y2) {
+    if (x1 > x2) std::swap(x1, x2);
+    if (y1 > y2) std::swap(y1, y2);
+
+    glColor3f(1.0f, 0.0f, 0.0f); // 红色
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(static_cast<float>(x1), static_cast<float>(y1));
+    glVertex2f(static_cast<float>(x2), static_cast<float>(y1));
+    glVertex2f(static_cast<float>(x2), static_cast<float>(y2));
+    glVertex2f(static_cast<float>(x1), static_cast<float>(y2));
+    glEnd();
+}
+
+int main()
+{
+    if (!glfwInit()) {
+        std::cerr << "Failed to initialize GLFW" << std::endl;
         return -1;
     }
 
+    // 配置窗口装饰
+    glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+
+    // Set the error callback
+    glfwSetErrorCallback(error_callback);
+
+    GLFWwindow* window = get_glfw_fullscreen_window();
+    //GLFWwindow* window = get_simple_window();
+
     // Make the window's context current
     glfwMakeContextCurrent(window);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
+    glfwSetCursorPosCallback(window, cursor_position_callback);
+    glfwSetWindowSizeCallback(window, window_size_callback);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
+    // 初始化窗口大小 (逻辑分辨率）
+    int window_width, window_height;
+    glfwGetWindowSize(window, &window_width, &window_height);
+    window_size_callback(window, window_width, window_height);
+    printf("window size: width=%d, height=%d\n", window_width, window_height);
+
+    // 初始化 viewport (物理分辨率）
+    int framebuffer_width, framebuffer_height;
+    glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
+    framebuffer_size_callback(window, framebuffer_width, framebuffer_height);
+    printf("framebuffer size: width=%d, height=%d\n", framebuffer_width, framebuffer_height);
 
     cv::Mat cursor_image = create_cursor_image();
 
@@ -97,19 +181,44 @@ int main() {
     // 设置窗口光标
     glfwSetCursor(window, customCursor);
 
-    // Set up the projection matrix to flip the Y-axis
-    glMatrixMode(GL_PROJECTION);
-    glLoadIdentity();
-    glOrtho(0, image.cols, 0, image.rows, -1, 1);
-    glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
+    // 获取图像
+    cv::Mat image = get_fullscreen();
+
+    //printf("image size: width=%d, height=%d\n", image_width, image_height);
+
+//    cv::Size dsize;
+//    dsize.width = image.cols / (framebuffer_width / window_width);
+//    dsize.height = image.rows / (framebuffer_height / window_height);
+//    cv::resize(image, image, dsize, 0, 0, cv::INTER_AREA);
+
+    const int image_width = image.cols;
+    const int image_height = image.rows;
+
+    // 生成纹理
+    GLuint texture;
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D, texture);
+
+    // 设置纹理参数
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // 上传纹理数据
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image_width, image_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image.data);
+    glBindTexture(GL_TEXTURE_2D, 0);
 
     // 主循环
     while (!glfwWindowShouldClose(window)) {
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glRasterPos2i(0, 0);
-        glDrawPixels(width, height, GL_RGBA, GL_UNSIGNED_BYTE, image.data);
+        draw_textured_quad(texture, image_width, image_height);
+
+        // 绘制矩形区域
+        if (isSelecting) {
+            drawRectangle(startX, startY, currentX, currentY);
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
