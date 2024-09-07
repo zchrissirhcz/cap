@@ -6,10 +6,24 @@
 
 bool isSelecting = false;
 double startX, startY, currentX, currentY;
+cv::Mat image;
 
 // Callback function for GLFW errors
 void error_callback(int error, const char* description) {
     std::cerr << "Error: " << description << std::endl;
+}
+
+cv::Rect get_rect(double x1, double y1, double x2, double y2)
+{
+    int x1i = static_cast<int>(x1);
+    int y1i = static_cast<int>(y1);
+    int x2i = static_cast<int>(x2);
+    int y2i = static_cast<int>(y2);
+    int xmin = std::min(x1i, x2i);
+    int ymin = std::min(y1i, y2i);
+    int xmax = std::max(x1i, x2i);
+    int ymax = std::max(y1i, y2i);
+    return cv::Rect(xmin, ymin, xmax-xmin+1, ymax-ymin+1);
 }
 
 // 鼠标按下回调函数
@@ -20,6 +34,22 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
             glfwGetCursorPos(window, &startX, &startY); // 使用最新的鼠标位置作为起点
         } else if (action == GLFW_RELEASE) {
             isSelecting = false;
+
+	    int framebuffer_width, framebuffer_height;
+	    glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
+
+	    int window_width, window_height;
+	    glfwGetWindowSize(window, &window_width, &window_height);
+
+	    float scale_width = framebuffer_width / window_width;
+	    float scale_height = framebuffer_height / window_height;
+
+	    cv::Rect rect = get_rect(startX * scale_width, startY * scale_height, currentX * scale_width, currentY * scale_height);
+
+	    cv::Mat roi = image(rect);
+	    cv::Mat res;
+	    cv::cvtColor(roi, res, cv::COLOR_RGBA2BGR);
+	    cv::imwrite("cap.png", roi);
         }
     }
 }
@@ -129,7 +159,7 @@ int main()
 //     cv::Mat image = cv::imread("/Users/zz/data/peppers.png");
 //     cv::cvtColor(image, image, cv::COLOR_BGR2RGBA);
 
-    cv::Mat image = get_fullscreen();
+    image = get_fullscreen();
     printf("image size: width=%d, height=%d\n", image.cols, image.rows);
     //GLFWwindow* window = get_simple_window(image.cols, image.rows);
 
