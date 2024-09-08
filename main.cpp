@@ -6,6 +6,10 @@
 #include "clipboard.hpp"
 #include "filedialog.hpp"
 
+#ifndef GL_CLAMP_TO_EDGE  
+#define GL_CLAMP_TO_EDGE 0x812F  
+#endif
+
 bool isSelecting = false;
 bool selected = false;
 bool confirmed = false;
@@ -81,6 +85,11 @@ GLFWwindow* get_glfw_fullscreen_window()
     GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
 
+    glfwWindowHint(GLFW_RED_BITS, mode->redBits);
+    glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
+    glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
+    glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
+
     printf("primary monitor: width=%d, height=%d\n", mode->width, mode->height);
     GLFWwindow* window = glfwCreateWindow(mode->width, mode->height, "Screen Capture", nullptr, NULL);
     if (!window) {
@@ -135,6 +144,7 @@ void draw_overlay(double x1, double y1, double x2, double y2, int window_width, 
 
     // 设置灰色的半透明蒙版颜色
     glColor4f(0.1f, 0.1f, 0.1f, 0.5f);  // 50% 透明
+    //glColor4f(0.2f, 0.2f, 0.2f, 0.0f);  // 50% 透明
 
     if (x1 > x2) std::swap(x1, x2);
     if (y1 > y2) std::swap(y1, y2);
@@ -362,6 +372,35 @@ void render_toolbox_window(GLFWwindow* widget_window, Button* buttons) {
     drawCheckMark(buttons[1]);
 }
 
+void get_opengl_version()
+{
+    // 检查 OpenGL 版本  
+    const GLubyte* vendor = glGetString(GL_VENDOR);
+    const GLubyte* renderer = glGetString(GL_RENDERER);
+    const GLubyte* version = glGetString(GL_VERSION);
+
+    if (vendor) {
+        std::cout << "Vendor: " << vendor << std::endl;
+    }
+    else {
+        std::cerr << "Failed to get vendor string" << std::endl;
+    }
+
+    if (renderer) {
+        std::cout << "Renderer: " << renderer << std::endl;
+    }
+    else {
+        std::cerr << "Failed to get renderer string" << std::endl;
+    }
+
+    if (version) {
+        std::cout << "OpenGL Version: " << version << std::endl;
+    }
+    else {
+        std::cerr << "Failed to get version string" << std::endl;
+    }
+}
+
 int main()
 {
     if (!glfwInit()) {
@@ -374,6 +413,10 @@ int main()
 
     // Set the error callback
     glfwSetErrorCallback(error_callback);
+
+    image = get_fullscreen();
+    printf("image size: width=%d, height=%d\n", image.cols, image.rows);
+    //GLFWwindow* window = get_simple_window(image.cols, image.rows);
 
     GLFWwindow* window = get_glfw_fullscreen_window();
 //     cv::Mat image = cv::imread("/Users/zz/data/peppers.png");
@@ -391,12 +434,9 @@ int main()
     glfwSetWindowUserPointer(widget_window, buttons);
     glfwSetMouseButtonCallback(widget_window, mouse_button_callback_for_widget);
 
-    image = get_fullscreen();
-    printf("image size: width=%d, height=%d\n", image.cols, image.rows);
-    //GLFWwindow* window = get_simple_window(image.cols, image.rows);
-
     // Make the window's context current
     glfwMakeContextCurrent(window);
+    get_opengl_version();
     glfwSetMouseButtonCallback(window, mouse_button_callback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
     glfwSetWindowSizeCallback(window, window_size_callback);
@@ -473,14 +513,17 @@ int main()
 
     // 主循环
     while (!glfwWindowShouldClose(window)) {
+        // 清除颜色和深度缓冲区  
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
         if (confirmed)
             break;
 
         if (selected)
         {
-            glfwShowWindow(widget_window);
             //glfwFocusWindow(widget_window); // 将焦点设置到工具箱窗口
             glfwMakeContextCurrent(widget_window);
+            glfwShowWindow(widget_window);
 
             //glViewport(0, 0, 400, 140);
 
