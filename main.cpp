@@ -4,6 +4,7 @@
 #include "imgproc.hpp"
 #include <GLFW/glfw3.h>
 #include "clipboard.hpp"
+#include "filedialog.hpp"
 
 bool isSelecting = false;
 bool selected = false;
@@ -243,8 +244,6 @@ void mouse_button_callback_for_widget(GLFWwindow* window, int button, int action
             copyImageToClipboard(res);
             std::cout << "Copied to system clipboard" << std::endl;
         } else if (isMouseOverButton(buttons[2], mouseX, mouseY)) {
-            std::cout << "Download button clicked!" << std::endl;
-            
             cv::Mat roi = get_selected_region(window);
 
             cv::Mat res;
@@ -252,7 +251,9 @@ void mouse_button_callback_for_widget(GLFWwindow* window, int button, int action
 
             // TODO: pop up a window and ask user to select desired path
             // then save image with that path
-            cv::imwrite("cap.png", res);
+            std::string filepath = showSaveFileDialog();
+            cv::imwrite(filepath, res);
+            std::cout << "Saved to file " << filepath << std::endl;
         }
         confirmed = true;
     }  

@@ -12,6 +12,8 @@ add_executable(cap
   imgproc.cpp
 clipboard.hpp
   clipboard.mm
+  filedialog.hpp
+  filedialog.mm
 )
 
 find_library(ApplicationServices_LIBRARY ApplicationServices REQUIRED)
