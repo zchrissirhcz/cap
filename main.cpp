@@ -6,7 +6,7 @@
 
 bool isSelecting = false;
 bool selected = false;
-double startX, startY, currentX, currentY;
+double startX=0, startY=0, currentX=0, currentY=0;
 cv::Mat image;
 
 // Callback function for GLFW errors
@@ -33,33 +33,38 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
         if (action == GLFW_PRESS) {
             isSelecting = true;
             glfwGetCursorPos(window, &startX, &startY); // 使用最新的鼠标位置作为起点
+            currentX = startX;
+            currentY = startY;
         } else if (action == GLFW_RELEASE) {
             isSelecting = false;
-	    selected = true;
+            selected = true;
 
-	    int framebuffer_width, framebuffer_height;
-	    glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
+            int framebuffer_width, framebuffer_height;
+            glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
 
-	    int window_width, window_height;
-	    glfwGetWindowSize(window, &window_width, &window_height);
+            int window_width, window_height;
+            glfwGetWindowSize(window, &window_width, &window_height);
 
-	    float scale_width = framebuffer_width / window_width;
-	    float scale_height = framebuffer_height / window_height;
+            float scale_width = framebuffer_width * 1.0f / window_width;
+            float scale_height = framebuffer_height * 1.0f / window_height;
 
-	    cv::Rect rect = get_rect(startX * scale_width, startY * scale_height, currentX * scale_width, currentY * scale_height);
+            cv::Rect rect = get_rect(startX * scale_width, startY * scale_height, currentX * scale_width, currentY * scale_height);
 
-	    cv::Mat roi = image(rect);
-	    cv::Mat res;
-	    cv::cvtColor(roi, res, cv::COLOR_RGBA2BGR);
-	    cv::imwrite("cap.png", res);
+            cv::Mat roi = image(rect);
+            cv::Mat res;
+            cv::cvtColor(roi, res, cv::COLOR_RGBA2BGR);
+            cv::imwrite("cap.png", res);
         }
     }
 }
 
 // 鼠标移动回调函数
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos) {
-    currentX = xpos;
-    currentY = ypos;
+    if (isSelecting)
+    {
+        currentX = xpos;
+        currentY = ypos;
+    }
 }
 
 // 处理 framebuffer 大小变化（物理层面的分辨率）
@@ -130,37 +135,73 @@ void draw_textured_quad(GLuint texture, int target_image_width, int target_image
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
+void draw_dark_overlay(double x1, double y1, double x2, double y2, int window_width, int window_height)
+{
+    // 启用混合功能
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // 设置灰色的半透明蒙版颜色
+    glColor4f(0.1f, 0.1f, 0.1f, 0.5f);  // 50% 透明
+
+    if (x1 > x2) std::swap(x1, x2);
+    if (y1 > y2) std::swap(y1, y2);
+    
+    // 绘制左侧区域
+    glBegin(GL_QUADS);
+    glVertex2f(0.0f, 0.0f);
+    glVertex2f(x1, 0.0f);
+    glVertex2f(x1, window_height);
+    glVertex2f(0.0f, window_height);
+    glEnd();
+
+    // 绘制右侧区域
+    glBegin(GL_QUADS);
+    glVertex2f(x2, 0.0f);
+    glVertex2f(window_width, 0.0f);
+    glVertex2f(window_width, window_height);
+    glVertex2f(x2, window_height);
+    glEnd();
+
+    // 绘制顶部区域
+    glBegin(GL_QUADS);
+    glVertex2f(x1, 0.0f);
+    glVertex2f(x2, 0.0f);
+    glVertex2f(x2, y1);
+    glVertex2f(x1, y1);
+    glEnd();
+
+    // 绘制底部区域
+    glBegin(GL_QUADS);
+    glVertex2f(x1, y2);
+    glVertex2f(x2, y2);
+    glVertex2f(x2, window_height);
+    glVertex2f(x1, window_height);
+    glEnd();
+
+    glDisable(GL_BLEND);
+}
+
 // 绘制矩形
-void drawRectangle(double x1, double y1, double x2, double y2) {  
-    if (x1 > x2) std::swap(x1, x2);  
-    if (y1 > y2) std::swap(y1, y2);  
+void drawRectangle(double x1, double y1, double x2, double y2) {
+    if (x1 > x2) std::swap(x1, x2);
+    if (y1 > y2) std::swap(y1, y2);
 
-    // 启用混合并设置混合函数以支持透明度  
-    glEnable(GL_BLEND);  
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);  
+    // 启用混合并设置混合函数以支持透明度
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-    // 绘制半透明的白色填充  
-    glColor4f(1.0f, 1.0f, 1.0f, 0.5f); // 50% 透明的白色  
-    glBegin(GL_QUADS);  
-    glVertex2f(static_cast<float>(x1), static_cast<float>(y1));  
-    glVertex2f(static_cast<float>(x2), static_cast<float>(y1));  
-    glVertex2f(static_cast<float>(x2), static_cast<float>(y2));  
-    glVertex2f(static_cast<float>(x1), static_cast<float>(y2));  
-    glEnd();  
+    // 绘制蓝色边框
+    glColor3f(0.2f, 0.5f, 1.0f); // 蓝色
+    glBegin(GL_LINE_LOOP);
+    glVertex2f(static_cast<float>(x1), static_cast<float>(y1));
+    glVertex2f(static_cast<float>(x2), static_cast<float>(y1));
+    glVertex2f(static_cast<float>(x2), static_cast<float>(y2));
+    glVertex2f(static_cast<float>(x1), static_cast<float>(y2));
+    glEnd();
 
-    // 绘制红色边框  
-    if (0) {
-    	glColor3f(1.0f, 0.0f, 0.0f); // 红色  
-	glBegin(GL_LINE_LOOP);  
-    	glVertex2f(static_cast<float>(x1), static_cast<float>(y1));  
-    	glVertex2f(static_cast<float>(x2), static_cast<float>(y1));  
-    	glVertex2f(static_cast<float>(x2), static_cast<float>(y2));  
-    	glVertex2f(static_cast<float>(x1), static_cast<float>(y2));  
-    	glEnd();
-    }
-
-    // 关闭混合以避免影响其他绘制操作  
-    glDisable(GL_BLEND);  
+    // 关闭混合以避免影响其他绘制操作
+    glDisable(GL_BLEND);
 }
 
 int main()
@@ -245,12 +286,13 @@ int main()
 
     // 主循环
     while (!glfwWindowShouldClose(window)) {
-	if (selected)
-	    break;
+        if (selected)
+            break;
         glClear(GL_COLOR_BUFFER_BIT);
 
         // draw_textured_quad(texture, image_width, image_height);
         draw_textured_quad(texture, window_width, window_height);
+        draw_dark_overlay(startX, startY, currentX, currentY, window_width, window_height);
 
         // 绘制矩形区域
         if (isSelecting) {
