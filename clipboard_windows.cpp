@@ -1,69 +1,67 @@
 #include "clipboard.hpp"  
 
+#define WIN32_LEAN_AND_MEAN // 排除不常用的 API  
+#define NOMINMAX            // 防止定义 min 和 max 宏  
+//#define NOGDI               // 排除 GDI 功能  
+//#define NOSERVICE           // 排除服务功能  
+//#define NOIME               // 排除输入法编辑器功能  
+//#define NOMCX               // 排除 Modem Control Extensions  
+//#define NOCRYPT             // 排除加密/解密功能  
+
+#include <windows.h>  
 #include <opencv2/opencv.hpp>  
-#include <Windows.h>  
-#include <iostream>  
 
-// Helper function to create a HBITMAP from a cv::Mat  
-HBITMAP CreateHBITMAPFromCvMat(const cv::Mat& image)  
-{  
-    cv::Mat convertedImage;  
-    if (image.channels() == 1) {  
-        cv::cvtColor(image, convertedImage, cv::COLOR_GRAY2BGRA);  
-    } else if (image.channels() == 3) {  
-        cv::cvtColor(image, convertedImage, cv::COLOR_BGR2BGRA);  
-    } else if (image.channels() == 4) {  
-        convertedImage = image.clone();  
-    } else {  
-        std::cerr << "Unsupported image format." << std::endl;  
-        return nullptr;  
-    }  
 
-    BITMAPINFOHEADER bi = { 0 };  
-    bi.biSize = sizeof(BITMAPINFOHEADER);  
-    bi.biWidth = convertedImage.cols;  
-    bi.biHeight = -convertedImage.rows; // Negative to indicate a top-down DIB  
-    bi.biPlanes = 1;  
-    bi.biBitCount = 32;  
-    bi.biCompression = BI_RGB;  
+void copyImageToClipboard(const cv::Mat& image) {
+    // Convert image to BGRA format  
+    cv::Mat convertedImage;
+    cv::cvtColor(image, convertedImage, cv::COLOR_BGR2BGRA);
 
-    HBITMAP hBitmap = CreateDIBSection(nullptr, reinterpret_cast<BITMAPINFO*>(&bi), DIB_RGB_COLORS, nullptr, nullptr, 0);  
-    if (!hBitmap) {  
-        std::cerr << "Failed to create a DIB section." << std::endl;  
-        return nullptr;  
-    }  
+    // Calculate the size of the image data  
+    const int dataSize = convertedImage.total() * convertedImage.elemSize();
 
-    void* pvImageBits = nullptr;  
-    GetDIBits(GetDC(nullptr), hBitmap, 0, convertedImage.rows, NULL, reinterpret_cast<BITMAPINFO*>(&bi), DIB_RGB_COLORS);  
-    pvImageBits = convertedImage.data;  
-    SetDIBits(GetDC(nullptr), hBitmap, 0, convertedImage.rows, pvImageBits, reinterpret_cast<BITMAPINFO*>(&bi), DIB_RGB_COLORS);  
+    // Open the clipboard  
+    if (!OpenClipboard(nullptr)) {
+        return;
+    }
 
-    return hBitmap;  
-}  
+    // Empty the clipboard  
+    EmptyClipboard();
 
-// Copy cv::Mat image to system clipboard  
-void copyImageToClipboard(const cv::Mat& image)  
-{  
-    // Check if image is empty  
-    if (image.empty()) {  
-        std::cerr << "Image is empty, cannot copy to clipboard." << std::endl;  
-        return;  
-    }  
+    // Allocate global memory for the image data  
+    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, dataSize + sizeof(BITMAPINFOHEADER));
+    if (!hMem) {
+        CloseClipboard();
+        return;
+    }
 
-    HBITMAP hBitmap = CreateHBITMAPFromCvMat(image);  
-    if (!hBitmap) {  
-        std::cerr << "Failed to create HBITMAP from cv::Mat." << std::endl;  
-        return;  
-    }  
+    // Lock the global memory and copy the image data  
+    void* pMem = GlobalLock(hMem);
+    if (pMem) {
+        // Prepare the BITMAPINFOHEADER  
+        BITMAPINFOHEADER* bi = static_cast<BITMAPINFOHEADER*>(pMem);
+        bi->biSize = sizeof(BITMAPINFOHEADER);
+        bi->biWidth = convertedImage.cols;
+        bi->biHeight = -convertedImage.rows; // Negative to indicate top-down DIB  
+        bi->biPlanes = 1;
+        bi->biBitCount = 32;
+        bi->biCompression = BI_RGB;
+        bi->biSizeImage = 0;
+        bi->biXPelsPerMeter = 0;
+        bi->biYPelsPerMeter = 0;
+        bi->biClrUsed = 0;
+        bi->biClrImportant = 0;
 
-    // Open the clipboard and clear any previous contents  
-    if (OpenClipboard(nullptr)) {  
-        EmptyClipboard();  
-        SetClipboardData(CF_BITMAP, hBitmap);  
-        CloseClipboard();  
-    } else {  
-        std::cerr << "Failed to open clipboard." << std::endl;  
-    }  
+        // Copy the actual image data after the header  
+        memcpy(static_cast<char*>(pMem) + sizeof(BITMAPINFOHEADER), convertedImage.data, dataSize);
+    }
+    GlobalUnlock(hMem);
 
-    // The clipboard takes ownership of the HBITMAP, do not delete it  
-}  
+    // Set the clipboard data  
+    SetClipboardData(CF_DIB, hMem);
+
+    // Close the clipboard  
+    CloseClipboard();
+
+    // The clipboard now owns the memory, so we don't free it  
+}
