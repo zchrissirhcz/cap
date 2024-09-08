@@ -3,6 +3,7 @@
 #include <opencv2/opencv.hpp>
 #include "imgproc.hpp"
 #include <GLFW/glfw3.h>
+#include "clipboard.hpp"
 
 bool isSelecting = false;
 bool selected = false;
@@ -234,15 +235,13 @@ void mouse_button_callback_for_widget(GLFWwindow* window, int button, int action
             std::cout << "Cancel button clicked!" << std::endl;  
             
         } else if (isMouseOverButton(buttons[1], mouseX, mouseY)) {  
-            std::cout << "Confirm button clicked!" << std::endl;  
-
             cv::Mat roi = get_selected_region(window);
 
             cv::Mat res;
             cv::cvtColor(roi, res, cv::COLOR_RGBA2BGR);
 
-            // TODO: copy to system clipboard
-            cv::imwrite("cap.png", res);
+            copyImageToClipboard(res);
+            std::cout << "Copied to system clipboard" << std::endl;
         } else if (isMouseOverButton(buttons[2], mouseX, mouseY)) {
             std::cout << "Download button clicked!" << std::endl;
             

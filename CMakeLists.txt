@@ -10,9 +10,12 @@ add_executable(cap
   cap.cpp
   imgproc.hpp
   imgproc.cpp
+clipboard.hpp
+  clipboard.mm
 )
 
 find_library(ApplicationServices_LIBRARY ApplicationServices REQUIRED)
+find_library(COCOA_LIBRARY Cocoa REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(glfw3 REQUIRED)
 find_package(OpenGL REQUIRED)
@@ -24,6 +27,7 @@ endif()
 target_link_libraries(cap PRIVATE
   ${OpenCV_LIBS}
   ${ApplicationServices_LIBRARY}
+  ${COCOA_LIBRARY}
   glfw
   OpenGL::GL
 )
