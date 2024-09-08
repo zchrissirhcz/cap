@@ -135,7 +135,8 @@ void draw_textured_quad(GLuint texture, int target_image_width, int target_image
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void draw_dark_overlay(double x1, double y1, double x2, double y2, int window_width, int window_height)
+// 为选中区域绘制蓝色边框，为非选中区域显示暗色遮罩
+void draw_overlay(double x1, double y1, double x2, double y2, int window_width, int window_height)
 {
     // 启用混合功能
     glEnable(GL_BLEND);
@@ -179,17 +180,6 @@ void draw_dark_overlay(double x1, double y1, double x2, double y2, int window_wi
     glVertex2f(x1, window_height);
     glEnd();
 
-    glDisable(GL_BLEND);
-}
-
-// 绘制矩形
-void drawRectangle(double x1, double y1, double x2, double y2) {
-    if (x1 > x2) std::swap(x1, x2);
-    if (y1 > y2) std::swap(y1, y2);
-
-    // 启用混合并设置混合函数以支持透明度
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
     // 绘制蓝色边框
     glColor3f(0.2f, 0.5f, 1.0f); // 蓝色
@@ -200,8 +190,13 @@ void drawRectangle(double x1, double y1, double x2, double y2) {
     glVertex2f(static_cast<float>(x1), static_cast<float>(y2));
     glEnd();
 
+
     // 关闭混合以避免影响其他绘制操作
     glDisable(GL_BLEND);
+}
+
+// 绘制矩形
+void drawRectangle(double x1, double y1, double x2, double y2) {
 }
 
 int main()
@@ -286,18 +281,13 @@ int main()
 
     // 主循环
     while (!glfwWindowShouldClose(window)) {
-        if (selected)
-            break;
+//if (selected)
+//            break;
         glClear(GL_COLOR_BUFFER_BIT);
 
         // draw_textured_quad(texture, image_width, image_height);
         draw_textured_quad(texture, window_width, window_height);
-        draw_dark_overlay(startX, startY, currentX, currentY, window_width, window_height);
-
-        // 绘制矩形区域
-        if (isSelecting) {
-            drawRectangle(startX, startY, currentX, currentY);
-        }
+        draw_overlay(startX, startY, currentX, currentY, window_width, window_height);
 
         glfwSwapBuffers(window);
         glfwPollEvents();
