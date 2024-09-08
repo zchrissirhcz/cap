@@ -32,6 +32,7 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
         if (action == GLFW_PRESS) {
             isSelecting = true;
+            selected = false;
             glfwGetCursorPos(window, &startX, &startY); // 使用最新的鼠标位置作为起点
             currentX = startX;
             currentY = startY;
@@ -94,12 +95,15 @@ GLFWwindow* get_glfw_fullscreen_window()
     const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
 
     printf("primary monitor: width=%d, height=%d\n", mode->width, mode->height);
-    GLFWwindow* window = glfwCreateWindow(mode->width, mode->height, "Screen Capture", primaryMonitor, NULL);
+    GLFWwindow* window = glfwCreateWindow(mode->width, mode->height, "Screen Capture", nullptr, NULL);
     if (!window) {
         std::cerr << "Failed to create GLFW window!" << std::endl;
         glfwTerminate();
         return nullptr;
     }
+    // 将窗口移动到屏幕的左上角
+    glfwSetWindowPos(window, 0, 0);
+
     return window;
 }
 
@@ -147,7 +151,7 @@ void draw_overlay(double x1, double y1, double x2, double y2, int window_width, 
 
     if (x1 > x2) std::swap(x1, x2);
     if (y1 > y2) std::swap(y1, y2);
-    
+
     // 绘制左侧区域
     glBegin(GL_QUADS);
     glVertex2f(0.0f, 0.0f);
@@ -216,6 +220,8 @@ int main()
 //     cv::Mat image = cv::imread("/Users/zz/data/peppers.png");
 //     cv::cvtColor(image, image, cv::COLOR_BGR2RGBA);
 
+    GLFWwindow* widget_window = get_simple_window(100, 50);
+
     image = get_fullscreen();
     printf("image size: width=%d, height=%d\n", image.cols, image.rows);
     //GLFWwindow* window = get_simple_window(image.cols, image.rows);
@@ -283,6 +289,28 @@ int main()
     while (!glfwWindowShouldClose(window)) {
 //if (selected)
 //            break;
+        if (selected)
+        {
+            glfwShowWindow(widget_window);
+            //glfwFocusWindow(widget_window); // 将焦点设置到工具箱窗口
+            glfwMakeContextCurrent(widget_window);
+
+            // // 设置背景颜色为白色
+            glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+            // // 在工具箱窗口中渲染内容（如果需要）
+            glfwSwapBuffers(widget_window);
+
+            int xpos = std::max(startX, currentX) - 100;
+            int ypos = std::max(startY, currentY) + 10;
+            glfwSetWindowPos(widget_window, xpos, ypos);
+        }
+        else
+        {
+            glfwHideWindow(widget_window);
+        }
+
+        glfwMakeContextCurrent(window);
         glClear(GL_COLOR_BUFFER_BIT);
 
         // draw_textured_quad(texture, image_width, image_height);
@@ -295,6 +323,7 @@ int main()
 
     // 清理
     glfwDestroyWindow(window);
+    glfwDestroyWindow(widget_window);
     glfwTerminate();
     return 0;
 }
