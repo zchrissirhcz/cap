@@ -196,6 +196,23 @@ bool isMouseOverButton(Button button, double mouseX, double mouseY) {
            mouseY >= button.y && mouseY <= button.y + button.height;
 }
 
+cv::Mat get_selected_region(GLFWwindow* window)
+{
+    int framebuffer_width, framebuffer_height;
+    glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
+
+    int window_width, window_height;
+    glfwGetWindowSize(window, &window_width, &window_height);
+
+    float scale_width = framebuffer_width * 1.0f / window_width;
+    float scale_height = framebuffer_height * 1.0f / window_height;
+
+    cv::Rect rect = get_rect(startX * scale_width, startY * scale_height, currentX * scale_width, currentY * scale_height);
+
+    cv::Mat roi = image(rect);
+    return roi;
+}
+
 // 鼠标按钮回调  
 void mouse_button_callback_for_widget(GLFWwindow* window, int button, int action, int mods) {  
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {  
@@ -219,22 +236,25 @@ void mouse_button_callback_for_widget(GLFWwindow* window, int button, int action
         } else if (isMouseOverButton(buttons[1], mouseX, mouseY)) {  
             std::cout << "Confirm button clicked!" << std::endl;  
 
-            int framebuffer_width, framebuffer_height;
-            glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
+            cv::Mat roi = get_selected_region(window);
 
-            int window_width, window_height;
-            glfwGetWindowSize(window, &window_width, &window_height);
-
-            float scale_width = framebuffer_width * 1.0f / window_width;
-            float scale_height = framebuffer_height * 1.0f / window_height;
-
-            cv::Rect rect = get_rect(startX * scale_width, startY * scale_height, currentX * scale_width, currentY * scale_height);
-
-            cv::Mat roi = image(rect);
             cv::Mat res;
             cv::cvtColor(roi, res, cv::COLOR_RGBA2BGR);
+
+            // TODO: copy to system clipboard
             cv::imwrite("cap.png", res);
-        }  
+        } else if (isMouseOverButton(buttons[2], mouseX, mouseY)) {
+            std::cout << "Download button clicked!" << std::endl;
+            
+            cv::Mat roi = get_selected_region(window);
+
+            cv::Mat res;
+            cv::cvtColor(roi, res, cv::COLOR_RGBA2BGR);
+
+            // TODO: pop up a window and ask user to select desired path
+            // then save image with that path
+            cv::imwrite("cap.png", res);
+        }
         confirmed = true;
     }  
 }
@@ -265,7 +285,7 @@ void drawX(Button button) {
 // 绘制对勾形状  
 void drawCheckMark(Button button) {  
     // 设置线条颜色
-    glColor3f(0.8f, 0.8f, 0.8f);
+    glColor3f(0.7f, 0.7f, 0.7f);
 
     // 计算对勾的顶点  
     float startX = button.x + button.width * 0.1f;  
@@ -286,6 +306,51 @@ void drawCheckMark(Button button) {
     glVertex2f(endX, endY);  
     glEnd();  
 }
+
+// 绘制下载图标  
+void drawDownloadIcon(Button button) {  
+    // 设置线条颜色  
+    glColor3f(0.7f, 0.7f, 0.7f);
+
+    // 计算箭头和横线的顶点  
+    float centerX = button.x + button.width * 0.5f;  
+    float arrowTopY = button.y + button.height * 0.1f; // 更高的顶点  
+    float arrowBottomY = button.y + button.height * 0.6f; // 更短的斜线底部  
+    float lineY = button.y + button.height * 0.8f; // 横线更低  
+    float lineLeftX = button.x + button.width * 0.2f;  
+    float lineRightX = button.x + button.width * 0.8f;  
+    float lineEndHeight = button.height * 0.1f;  
+
+    // 绘制向下箭头  
+    glBegin(GL_LINES);  
+    // 左斜线  
+    glVertex2f(centerX, arrowBottomY);  
+    glVertex2f(centerX - button.width * 0.1f, arrowBottomY - button.height * 0.1f);  
+
+    // 右斜线  
+    glVertex2f(centerX, arrowBottomY);  
+    glVertex2f(centerX + button.width * 0.1f, arrowBottomY - button.height * 0.1f);  
+
+    // 垂直线  
+    glVertex2f(centerX, arrowTopY);  
+    glVertex2f(centerX, arrowBottomY);  
+    glEnd();  
+
+    // 绘制横线和短上升线段  
+    glBegin(GL_LINES);  
+    // 横线  
+    glVertex2f(lineLeftX, lineY);  
+    glVertex2f(lineRightX, lineY);  
+
+    // 左短上升线段  
+    glVertex2f(lineLeftX, lineY);  
+    glVertex2f(lineLeftX, lineY - lineEndHeight);  
+
+    // 右短上升线段  
+    glVertex2f(lineRightX, lineY);  
+    glVertex2f(lineRightX, lineY - lineEndHeight);  
+    glEnd();
+}  
 
 void render_toolbox_window(GLFWwindow* widget_window, Button* buttons) {
     // // 设置背景颜色为白色
@@ -314,12 +379,13 @@ int main()
 //     cv::Mat image = cv::imread("/Users/zz/data/peppers.png");
 //     cv::cvtColor(image, image, cv::COLOR_BGR2RGBA);
 
-    GLFWwindow* widget_window = get_simple_window(200, 100);
+    GLFWwindow* widget_window = get_simple_window(300, 100);
 
     // 定义按钮
-    Button buttons[2] = {
+    Button buttons[3] = {
         {20, 20, 60, 60, "Cancel"},
-        {120, 20, 60, 60, "Confirm"}
+        {120, 20, 60, 60, "Confirm"},
+        {220, 20, 60, 60, "Download"},
     };
     // 设置用户指针为按钮数组
     glfwSetWindowUserPointer(widget_window, buttons);
@@ -424,9 +490,10 @@ int main()
 
             drawX(buttons[0]);
             drawCheckMark(buttons[1]);
+            drawDownloadIcon(buttons[2]);
             glfwSwapBuffers(widget_window);
 
-            int xpos = std::max(startX, currentX) - 200;
+            int xpos = std::max(startX, currentX) - 300;
             int ypos = std::max(startY, currentY) + 10;
             glfwSetWindowPos(widget_window, xpos, ypos);
         }
