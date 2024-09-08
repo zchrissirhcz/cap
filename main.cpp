@@ -6,6 +6,7 @@
 
 bool isSelecting = false;
 bool selected = false;
+bool confirmed = false;
 double startX=0, startY=0, currentX=0, currentY=0;
 cv::Mat image;
 
@@ -39,22 +40,6 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
         } else if (action == GLFW_RELEASE) {
             isSelecting = false;
             selected = true;
-
-            int framebuffer_width, framebuffer_height;
-            glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
-
-            int window_width, window_height;
-            glfwGetWindowSize(window, &window_width, &window_height);
-
-            float scale_width = framebuffer_width * 1.0f / window_width;
-            float scale_height = framebuffer_height * 1.0f / window_height;
-
-            cv::Rect rect = get_rect(startX * scale_width, startY * scale_height, currentX * scale_width, currentY * scale_height);
-
-            cv::Mat roi = image(rect);
-            cv::Mat res;
-            cv::cvtColor(roi, res, cv::COLOR_RGBA2BGR);
-            cv::imwrite("cap.png", res);
         }
     }
 }
@@ -211,27 +196,47 @@ bool isMouseOverButton(Button button, double mouseX, double mouseY) {
            mouseY >= button.y && mouseY <= button.y + button.height;
 }
 
-// 鼠标按钮回调
-void mouse_button_callback_for_widget(GLFWwindow* window, int button, int action, int mods) {
-    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-        double mouseX, mouseY;
-        glfwGetCursorPos(window, &mouseX, &mouseY);
+// 鼠标按钮回调  
+void mouse_button_callback_for_widget(GLFWwindow* window, int button, int action, int mods) {  
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {  
+        double mouseX, mouseY;  
+        glfwGetCursorPos(window, &mouseX, &mouseY);  
 
-        // 获取窗口大小
-        int windowWidth, windowHeight;
-        glfwGetWindowSize(window, &windowWidth, &windowHeight);
+        // 获取窗口大小  
+        int windowWidth, windowHeight;  
+        glfwGetWindowSize(window, &windowWidth, &windowHeight);  
 
-        // 翻转Y轴，因为OpenGL的坐标系原点在左下角
-        mouseY = windowHeight - mouseY;
+        // 翻转Y轴，因为OpenGL的坐标系原点在左下角  
+        mouseY = windowHeight - mouseY;  
 
-        // 检查按钮点击
-        Button* buttons = static_cast<Button*>(glfwGetWindowUserPointer(window));
-        if (isMouseOverButton(buttons[0], mouseX, mouseY)) {
-            std::cout << "Cancel button clicked!" << std::endl;
-        } else if (isMouseOverButton(buttons[1], mouseX, mouseY)) {
-            std::cout << "Confirm button clicked!" << std::endl;
-        }
-    }
+        // 获取按钮数组  
+        Button* buttons = static_cast<Button*>(glfwGetWindowUserPointer(window));  
+
+        // 检查按钮点击  
+        if (isMouseOverButton(buttons[0], mouseX, mouseY)) {  
+            std::cout << "Cancel button clicked!" << std::endl;  
+            
+        } else if (isMouseOverButton(buttons[1], mouseX, mouseY)) {  
+            std::cout << "Confirm button clicked!" << std::endl;  
+
+            int framebuffer_width, framebuffer_height;
+            glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
+
+            int window_width, window_height;
+            glfwGetWindowSize(window, &window_width, &window_height);
+
+            float scale_width = framebuffer_width * 1.0f / window_width;
+            float scale_height = framebuffer_height * 1.0f / window_height;
+
+            cv::Rect rect = get_rect(startX * scale_width, startY * scale_height, currentX * scale_width, currentY * scale_height);
+
+            cv::Mat roi = image(rect);
+            cv::Mat res;
+            cv::cvtColor(roi, res, cv::COLOR_RGBA2BGR);
+            cv::imwrite("cap.png", res);
+        }  
+        confirmed = true;
+    }  
 }
 
 // 绘制X形状  
@@ -317,8 +322,8 @@ int main()
         {120, 20, 60, 60, "Confirm"}
     };
     // 设置用户指针为按钮数组
-    // glfwSetWindowUserPointer(widget_window, buttons);
-    // glfwSetMouseButtonCallback(widget_window, mouse_button_callback_for_widget);
+    glfwSetWindowUserPointer(widget_window, buttons);
+    glfwSetMouseButtonCallback(widget_window, mouse_button_callback_for_widget);
 
     image = get_fullscreen();
     printf("image size: width=%d, height=%d\n", image.cols, image.rows);
@@ -402,8 +407,9 @@ int main()
 
     // 主循环
     while (!glfwWindowShouldClose(window)) {
-//if (selected)
-//            break;
+        if (confirmed)
+            break;
+
         if (selected)
         {
             glfwShowWindow(widget_window);
