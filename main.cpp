@@ -199,8 +199,97 @@ void draw_overlay(double x1, double y1, double x2, double y2, int window_width, 
     glDisable(GL_BLEND);
 }
 
-// 绘制矩形
-void drawRectangle(double x1, double y1, double x2, double y2) {
+// 按钮结构体
+struct Button {
+    float x, y, width, height;
+    const char* label;
+};
+
+// 检查鼠标是否在按钮内
+bool isMouseOverButton(Button button, double mouseX, double mouseY) {
+    return mouseX >= button.x && mouseX <= button.x + button.width &&
+           mouseY >= button.y && mouseY <= button.y + button.height;
+}
+
+// 鼠标按钮回调
+void mouse_button_callback_for_widget(GLFWwindow* window, int button, int action, int mods) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+        double mouseX, mouseY;
+        glfwGetCursorPos(window, &mouseX, &mouseY);
+
+        // 获取窗口大小
+        int windowWidth, windowHeight;
+        glfwGetWindowSize(window, &windowWidth, &windowHeight);
+
+        // 翻转Y轴，因为OpenGL的坐标系原点在左下角
+        mouseY = windowHeight - mouseY;
+
+        // 检查按钮点击
+        Button* buttons = static_cast<Button*>(glfwGetWindowUserPointer(window));
+        if (isMouseOverButton(buttons[0], mouseX, mouseY)) {
+            std::cout << "Cancel button clicked!" << std::endl;
+        } else if (isMouseOverButton(buttons[1], mouseX, mouseY)) {
+            std::cout << "Confirm button clicked!" << std::endl;
+        }
+    }
+}
+
+// 绘制X形状  
+void drawX(Button button) {  
+    // 设置线条颜色  
+    glColor3f(0.7f, 0.7f, 0.7f); 
+
+    // 绘制两条对角线  
+    glBegin(GL_LINES);  
+
+    float x1 = button.x + 0.1 * button.width;
+    float y1 = button.y + 0.1 * button.height;
+    float x2 = button.x + 0.9 * button.width;
+    float y2 = button.y + 0.9 * button.height;
+
+    // 第一条对角线  
+    glVertex2f(x1, y1);  
+    glVertex2f(x2, y2);  
+
+    // 第二条对角线  
+    glVertex2f(x2, y1);
+    glVertex2f(x1, y2);
+    glEnd();  
+}
+
+// 绘制对勾形状  
+void drawCheckMark(Button button) {  
+    // 设置线条颜色
+    glColor3f(0.8f, 0.8f, 0.8f);
+
+    // 计算对勾的顶点  
+    float startX = button.x + button.width * 0.1f;  
+    float startY = button.y + button.height * 0.5f;  
+    float midX = button.x + button.width * 0.4f;  
+    float midY = button.y + button.height * 0.8f;  
+    float endX = button.x + button.width * 0.8f;  
+    float endY = button.y + button.height * 0.2f;  
+
+    // 绘制对勾  
+    glBegin(GL_LINES);  
+    // 第一条线段  
+    glVertex2f(startX, startY);  
+    glVertex2f(midX, midY);  
+
+    // 第二条线段  
+    glVertex2f(midX, midY);  
+    glVertex2f(endX, endY);  
+    glEnd();  
+}
+
+void render_toolbox_window(GLFWwindow* widget_window, Button* buttons) {
+    // // 设置背景颜色为白色
+    //glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // 绘制按钮
+    drawX(buttons[0]);
+    drawCheckMark(buttons[1]);
 }
 
 int main()
@@ -220,7 +309,16 @@ int main()
 //     cv::Mat image = cv::imread("/Users/zz/data/peppers.png");
 //     cv::cvtColor(image, image, cv::COLOR_BGR2RGBA);
 
-    GLFWwindow* widget_window = get_simple_window(100, 50);
+    GLFWwindow* widget_window = get_simple_window(200, 100);
+
+    // 定义按钮
+    Button buttons[2] = {
+        {20, 20, 60, 60, "Cancel"},
+        {120, 20, 60, 60, "Confirm"}
+    };
+    // 设置用户指针为按钮数组
+    // glfwSetWindowUserPointer(widget_window, buttons);
+    // glfwSetMouseButtonCallback(widget_window, mouse_button_callback_for_widget);
 
     image = get_fullscreen();
     printf("image size: width=%d, height=%d\n", image.cols, image.rows);
@@ -244,6 +342,23 @@ int main()
     glfwGetFramebufferSize(window, &framebuffer_width, &framebuffer_height);
     framebuffer_size_callback(window, framebuffer_width, framebuffer_height);
     printf("framebuffer size: width=%d, height=%d\n", framebuffer_width, framebuffer_height);
+
+
+    glfwMakeContextCurrent(widget_window);
+
+    glfwSetWindowSizeCallback(widget_window, window_size_callback);
+    glfwSetFramebufferSizeCallback(widget_window, framebuffer_size_callback);
+
+    // 初始化窗口大小 (逻辑分辨率）
+    int widget_window_width, widget_window_height;
+    glfwGetWindowSize(widget_window, &widget_window_width, &widget_window_height);
+    window_size_callback(widget_window, widget_window_width, widget_window_height);
+
+    // 初始化 viewport (物理分辨率）
+    glfwGetFramebufferSize(widget_window, &framebuffer_width, &framebuffer_height);
+    framebuffer_size_callback(widget_window, framebuffer_width, framebuffer_height);
+
+    glfwMakeContextCurrent(window);
 
     cv::Mat cursor_image = create_cursor_image();
 
@@ -295,13 +410,17 @@ int main()
             //glfwFocusWindow(widget_window); // 将焦点设置到工具箱窗口
             glfwMakeContextCurrent(widget_window);
 
-            // // 设置背景颜色为白色
-            glClearColor(0.8f, 0.8f, 0.8f, 1.0f);
+            //glViewport(0, 0, 400, 140);
+
+            // 在工具箱窗口中渲染内容
+            //render_toolbox_window(widget_window, buttons);
             glClear(GL_COLOR_BUFFER_BIT);
-            // // 在工具箱窗口中渲染内容（如果需要）
+
+            drawX(buttons[0]);
+            drawCheckMark(buttons[1]);
             glfwSwapBuffers(widget_window);
 
-            int xpos = std::max(startX, currentX) - 100;
+            int xpos = std::max(startX, currentX) - 200;
             int ypos = std::max(startY, currentY) + 10;
             glfwSetWindowPos(widget_window, xpos, ypos);
         }
