@@ -15,8 +15,7 @@ add_executable(cap
   $<$<CXX_COMPILER_ID:MSVC>:clipboard_windows.cpp>
   $<$<CXX_COMPILER_ID:AppleClang>:clipboard_macos.mm>
   filedialog.hpp
-  $<$<CXX_COMPILER_ID:MSVC>:filedialog_windows.cpp>
-  $<$<CXX_COMPILER_ID:AppleClang>:filedialog_macos.mm>
+  filedialog.cpp
 )
 
 set(deps)
@@ -27,11 +26,13 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
   list(APPEND deps ${COCOA_LIBRARY})
 endif()
 
+#--- OpenCV
 if(MSVC)
   set(OpenCV_DIR "C:/pkgs/opencv/4.10.0/x64/vc16/lib")
 endif()
 find_package(OpenCV REQUIRED)
 
+#--- GLFW
 if(MSVC)
   set(glfw_src_dir "C:/work/glfw-3.4")
   option(GLFW_BUILD_EXAMPLES "Build the GLFW example programs" OFF)
@@ -43,14 +44,21 @@ if(MSVC)
 else()
   find_package(glfw3 REQUIRED)
 endif()
+
+#--- OpenGL
 find_package(OpenGL REQUIRED)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
   add_compile_definitions(GL_SILENCE_DEPRECATION)
 endif()
 
+#--- Portable File Dialogs
+set(portable_file_dialogs_src_dir "/Users/zz/work/github/portable-file-dialogs")
+add_subdirectory(${portable_file_dialogs_src_dir} ${CMAKE_BINARY_DIR}/portable_file_dialogs)
+
 target_link_libraries(cap PRIVATE
   ${OpenCV_LIBS}
+  portable_file_dialogs
   ${deps}
   glfw
   ${OPENGL_LIBRARIES}
