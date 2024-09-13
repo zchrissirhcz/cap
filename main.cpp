@@ -259,11 +259,13 @@ void mouse_button_callback_for_widget(GLFWwindow* window, int button, int action
             cv::Mat res;
             cv::cvtColor(roi, res, cv::COLOR_RGBA2BGR);
 
-            // TODO: pop up a window and ask user to select desired path
             // then save image with that path
             std::string filepath = showSaveFileDialog();
-            cv::imwrite(filepath, res);
-            std::cout << "Saved to file " << filepath << std::endl;
+            if (filepath.size() > 4)
+            {
+                std::cout << "Saved to file " << filepath << std::endl;
+                cv::imwrite(filepath, res);
+            }
         }
         confirmed = true;
     }  
