@@ -11,9 +11,3 @@ A simple screen-capture implementation in C++.
 ## Screenshots
 
 ![Longyearbyen](screenshots/Longyearbyen.png)
-
-## Dependencies
-
-- OpenGL
-- GLFW
-- OpenCV

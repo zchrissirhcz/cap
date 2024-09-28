@@ -26,16 +26,12 @@ minipkg_import(
   OpenGL
 )
 
-set(macos_deps)
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-  minipkg_import(ApplicationServices)
-  list(APPEND macos_deps minipkg::ApplicationServices)
-
-  minipkg_import(Cocoa)
-  list(APPEND macos_deps minipkg::Cocoa)
-endif()
-
-if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+  minipkg_import(
+    ApplicationServices
+    Cocoa
+  )
+  set(macos_deps minipkg::ApplicationServices minipkg::Cocoa)
   add_compile_definitions(GL_SILENCE_DEPRECATION)
 endif()
 
