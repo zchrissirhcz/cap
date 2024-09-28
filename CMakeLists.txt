@@ -31,7 +31,7 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
     ApplicationServices
     Cocoa
   )
-  set(macos_deps minipkg::ApplicationServices minipkg::Cocoa)
+  set(macos_deps native::ApplicationServices native::Cocoa)
   add_compile_definitions(GL_SILENCE_DEPRECATION)
 endif()
 
@@ -40,13 +40,13 @@ set(portable_file_dialogs_src_dir "/Users/zz/work/github/portable-file-dialogs")
 add_subdirectory(${portable_file_dialogs_src_dir} ${CMAKE_BINARY_DIR}/portable_file_dialogs)
 
 target_link_libraries(cap PRIVATE
-  minipkg::opencv_imgcodecs
-  minipkg::opencv_imgproc
-  minipkg::opencv_core
+  native::opencv_imgcodecs
+  native::opencv_imgproc
+  native::opencv_core
   portable_file_dialogs
   ${macos_deps}
-  minipkg::glfw3
-  minipkg::OpenGL
+  native::glfw3
+  native::OpenGL
 )
 
 if(MSVC)

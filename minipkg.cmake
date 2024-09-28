@@ -15,8 +15,8 @@ macro(minipkg_import)
         # list of targets, e.g. OpenCV -> ${OpenCV_LIBRARIES}
         if(DEFINED ${pkg_name}_LIBRARIES)
           foreach(sublib ${${pkg_name}_LIBRARIES})
-            add_library(minipkg::${sublib} ALIAS ${sublib})
-            message(STATUS "  importing minipkg::${sublib}")
+            add_library(native::${sublib} ALIAS ${sublib})
+            message(STATUS "  importing native::${sublib}")
           endforeach()
           set(pkg_imported TRUE)
           break()
@@ -29,11 +29,11 @@ macro(minipkg_import)
           # if length of list is 1, treat as single library
           list(LENGTH ${pkg_name_upper}_LIBRARIES num_items)
           if(${num_items} EQUAL 1)
-            add_library(minipkg::${pkg_name} SHARED IMPORTED GLOBAL)
-            set_target_properties(minipkg::${pkg_name} PROPERTIES
+            add_library(native::${pkg_name} SHARED IMPORTED GLOBAL)
+            set_target_properties(native::${pkg_name} PROPERTIES
               IMPORTED_LOCATION ${${pkg_name_upper}_LIBRARIES}
             )
-            message(STATUS "  importing minipkg::${pkg_name}")
+            message(STATUS "  importing native::${pkg_name}")
             set(pkg_imported TRUE)
           endif()
           unset(num_items)
@@ -43,8 +43,8 @@ macro(minipkg_import)
         
         # single target, e.g. 
         if(TARGET ${pkg_name})
-          add_library(minipkg::${pkg_name} ALIAS ${pkg_name})
-          message(STATUS "  importing minipkg::${pkg_name} from target ${pkg_name}")
+          add_library(native::${pkg_name} ALIAS ${pkg_name})
+          message(STATUS "  importing native::${pkg_name} from target ${pkg_name}")
           set(pkg_imported TRUE)
           break()
         endif()
@@ -52,8 +52,8 @@ macro(minipkg_import)
         # single target, remove number suffix, e.g. glfw3 -> glfw
         string(REGEX REPLACE "[0-9]+$" "" pkg_name_no_number "${pkg_name}")  
         if(TARGET ${pkg_name_no_number})
-          add_library(minipkg::${pkg_name} ALIAS ${pkg_name_no_number})
-          message(STATUS "  importing minipkg::${pkg_name_no_number} from target ${pkg_name_no_number}")
+          add_library(native::${pkg_name} ALIAS ${pkg_name_no_number})
+          message(STATUS "  importing native::${pkg_name_no_number} from target ${pkg_name_no_number}")
           set(pkg_imported TRUE)
           unset(pkg_name_no_number)
           break()
@@ -69,8 +69,8 @@ macro(minipkg_import)
         message(STATUS "  found library: ${lib_location}")
 
         if((IS_DIRECTORY "${lib_location}") AND ("${lib_location}" MATCHES ".framework$"))
-          add_library(minipkg::${pkg_name} SHARED IMPORTED GLOBAL)
-          set_target_properties(minipkg::${pkg_name} PROPERTIES
+          add_library(native::${pkg_name} SHARED IMPORTED GLOBAL)
+          set_target_properties(native::${pkg_name} PROPERTIES
             IMPORTED_LOCATION ${${pkg_name}_location}
           )
         endif()
