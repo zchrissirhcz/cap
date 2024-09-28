@@ -21,29 +21,27 @@ add_executable(cap
 include(minipkg.cmake)
 
 minipkg_import(
-  OpenCV
-  glfw3
-  OpenGL
+  OpenCV@native
+  glfw3@native
+  OpenGL@native
 )
 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
   minipkg_import(
-    ApplicationServices
-    Cocoa
+    ApplicationServices@native
+    Cocoa@native
   )
   set(macos_deps native::ApplicationServices native::Cocoa)
   add_compile_definitions(GL_SILENCE_DEPRECATION)
 endif()
 
-#--- Portable File Dialogs
-set(portable_file_dialogs_src_dir "/Users/zz/work/github/portable-file-dialogs")
-add_subdirectory(${portable_file_dialogs_src_dir} ${CMAKE_BINARY_DIR}/portable_file_dialogs)
+minipkg_import(portable-file-dialogs@minipkg)
 
 target_link_libraries(cap PRIVATE
   native::opencv_imgcodecs
   native::opencv_imgproc
   native::opencv_core
-  portable_file_dialogs
+  minipkg::portable-file-dialogs
   ${macos_deps}
   native::glfw3
   native::OpenGL

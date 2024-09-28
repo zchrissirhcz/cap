@@ -1,8 +1,13 @@
 # Usage:
-# minipkg_import(pkg_name)
+# minipkg_import(pkg_recipe1 pkg_recipe2 ...)
 macro(minipkg_import)
 
-  foreach(pkg_name ${ARGV})
+  foreach(pkg_recipe ${ARGV})
+    # split by '@'
+    string(REPLACE "@" ";" pkg_recipe_list ${pkg_recipe})
+    list(GET pkg_recipe_list 0 pkg_name)
+    list(GET pkg_recipe_list 1 pkg_domain)
+
     message(STATUS "importing package: ${pkg_name}")
     set(pkg_imported False)
 
@@ -15,8 +20,8 @@ macro(minipkg_import)
         # list of targets, e.g. OpenCV -> ${OpenCV_LIBRARIES}
         if(DEFINED ${pkg_name}_LIBRARIES)
           foreach(sublib ${${pkg_name}_LIBRARIES})
-            add_library(native::${sublib} ALIAS ${sublib})
-            message(STATUS "  importing native::${sublib}")
+            add_library(${pkg_domain}::${sublib} ALIAS ${sublib})
+            message(STATUS "  importing ${pkg_domain}::${sublib}")
           endforeach()
           set(pkg_imported TRUE)
           break()
@@ -29,11 +34,11 @@ macro(minipkg_import)
           # if length of list is 1, treat as single library
           list(LENGTH ${pkg_name_upper}_LIBRARIES num_items)
           if(${num_items} EQUAL 1)
-            add_library(native::${pkg_name} SHARED IMPORTED GLOBAL)
-            set_target_properties(native::${pkg_name} PROPERTIES
+            add_library(${pkg_domain}::${pkg_name} SHARED IMPORTED GLOBAL)
+            set_target_properties(${pkg_domain}::${pkg_name} PROPERTIES
               IMPORTED_LOCATION ${${pkg_name_upper}_LIBRARIES}
             )
-            message(STATUS "  importing native::${pkg_name}")
+            message(STATUS "  importing ${pkg_domain}::${pkg_name}")
             set(pkg_imported TRUE)
           endif()
           unset(num_items)
@@ -43,8 +48,8 @@ macro(minipkg_import)
         
         # single target, e.g. 
         if(TARGET ${pkg_name})
-          add_library(native::${pkg_name} ALIAS ${pkg_name})
-          message(STATUS "  importing native::${pkg_name} from target ${pkg_name}")
+          add_library(${pkg_domain}::${pkg_name} ALIAS ${pkg_name})
+          message(STATUS "  importing ${pkg_domain}::${pkg_name} from target ${pkg_name}")
           set(pkg_imported TRUE)
           break()
         endif()
@@ -52,8 +57,8 @@ macro(minipkg_import)
         # single target, remove number suffix, e.g. glfw3 -> glfw
         string(REGEX REPLACE "[0-9]+$" "" pkg_name_no_number "${pkg_name}")  
         if(TARGET ${pkg_name_no_number})
-          add_library(native::${pkg_name} ALIAS ${pkg_name_no_number})
-          message(STATUS "  importing native::${pkg_name_no_number} from target ${pkg_name_no_number}")
+          add_library(${pkg_domain}::${pkg_name} ALIAS ${pkg_name_no_number})
+          message(STATUS "  importing ${pkg_domain}::${pkg_name_no_number} from target ${pkg_name_no_number}")
           set(pkg_imported TRUE)
           unset(pkg_name_no_number)
           break()
@@ -69,8 +74,8 @@ macro(minipkg_import)
         message(STATUS "  found library: ${lib_location}")
 
         if((IS_DIRECTORY "${lib_location}") AND ("${lib_location}" MATCHES ".framework$"))
-          add_library(native::${pkg_name} SHARED IMPORTED GLOBAL)
-          set_target_properties(native::${pkg_name} PROPERTIES
+          add_library(${pkg_domain}::${pkg_name} SHARED IMPORTED GLOBAL)
+          set_target_properties(${pkg_domain}::${pkg_name} PROPERTIES
             IMPORTED_LOCATION ${${pkg_name}_location}
           )
         endif()
@@ -80,6 +85,21 @@ macro(minipkg_import)
       endif()
       unset(${pkg_name}_location)
       unset(lib_location)
+
+      # 3. treat as header-only library
+      set(pkg_dir "~/.minipkg/${pkg_name}")
+      get_filename_component(pkg_dir "${pkg_dir}" ABSOLUTE)
+      if((EXISTS ${pkg_dir}) AND (IS_DIRECTORY ${pkg_dir}))
+        message(STATUS "  found header-only library: ${pkg_dir}")
+        add_library(${pkg_name} INTERFACE)
+        set_target_properties(${pkg_name} PROPERTIES
+          INTERFACE_INCLUDE_DIRECTORIES ${pkg_dir}
+        )
+        add_library(minipkg::${pkg_name} ALIAS ${pkg_name})
+        message(STATUS "  importing ${pkg_domain}::${pkg_name}")
+        set(pkg_imported TRUE)
+        break()
+      endif()
 
       if(pkg_imported)
         break()
