@@ -18,35 +18,22 @@ add_executable(cap
   filedialog.cpp
 )
 
-set(deps)
+include(minipkg.cmake)
+
+minipkg_import(
+  OpenCV
+  glfw3
+  OpenGL
+)
+
+set(macos_deps)
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
-  find_library(ApplicationServices_LIBRARY ApplicationServices REQUIRED)
-  find_library(COCOA_LIBRARY Cocoa REQUIRED)
-  list(APPEND deps ${ApplicationServices_LIBRARY})
-  list(APPEND deps ${COCOA_LIBRARY})
-endif()
+  minipkg_import(ApplicationServices)
+  list(APPEND macos_deps minipkg::ApplicationServices)
 
-#--- OpenCV
-if(MSVC)
-  set(OpenCV_DIR "C:/pkgs/opencv/4.10.0/x64/vc16/lib")
+  minipkg_import(Cocoa)
+  list(APPEND macos_deps minipkg::Cocoa)
 endif()
-find_package(OpenCV REQUIRED)
-
-#--- GLFW
-if(MSVC)
-  set(glfw_src_dir "C:/work/glfw-3.4")
-  option(GLFW_BUILD_EXAMPLES "Build the GLFW example programs" OFF)
-  option(GLFW_BUILD_TESTS "Build the GLFW test programs" OFF)
-  option(GLFW_BUILD_DOCS "Build the GLFW documentation" OFF)
-  option(GLFW_INSTALL "Generate installation target" OFF)
-  option(GLFW_DOCUMENT_INTERNALS "Include internals in documentation" OFF)
-  add_subdirectory(${glfw_src_dir} ${CMAKE_BINARY_DIR}/glfw EXCLUDE_FROM_ALL)
-else()
-  find_package(glfw3 REQUIRED)
-endif()
-
-#--- OpenGL
-find_package(OpenGL REQUIRED)
 
 if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
   add_compile_definitions(GL_SILENCE_DEPRECATION)
@@ -57,11 +44,13 @@ set(portable_file_dialogs_src_dir "/Users/zz/work/github/portable-file-dialogs")
 add_subdirectory(${portable_file_dialogs_src_dir} ${CMAKE_BINARY_DIR}/portable_file_dialogs)
 
 target_link_libraries(cap PRIVATE
-  ${OpenCV_LIBS}
+  minipkg::opencv_imgcodecs
+  minipkg::opencv_imgproc
+  minipkg::opencv_core
   portable_file_dialogs
-  ${deps}
-  glfw
-  ${OPENGL_LIBRARIES}
+  ${macos_deps}
+  minipkg::glfw3
+  minipkg::OpenGL
 )
 
 if(MSVC)
