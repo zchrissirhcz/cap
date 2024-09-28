@@ -53,16 +53,12 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
 endif()
 
 #--- Portable File Dialogs
-add_library(cvpkg::portable-file-dialogs INTERFACE IMPORTED)
-set_target_properties(cvpkg::portable-file-dialogs PROPERTIES
-  INTERFACE_INCLUDE_DIRECTORIES "/Users/zz/work/github/portable-file-dialogs"
-  VERSION "0.1.0"
-  HOMEPAGE "https://github.com/samhocevar/portable-file-dialogs"
-)
+set(portable_file_dialogs_src_dir "/Users/zz/work/github/portable-file-dialogs")
+add_subdirectory(${portable_file_dialogs_src_dir} ${CMAKE_BINARY_DIR}/portable_file_dialogs)
 
 target_link_libraries(cap PRIVATE
   ${OpenCV_LIBS}
-  cvpkg::portable-file-dialogs
+  portable_file_dialogs
   ${deps}
   glfw
   ${OPENGL_LIBRARIES}
